@@ -9,9 +9,9 @@ let country = "NL"
 // Task 1.3c
 //    Problem: The lat/lon is for London.
 //    Approach: Lookup the lat/lon for Schiphol airport on wikipedia and adjust here
-let london =
-    { Latitude = 51.5074
-      Longitude = 0.1278 }
+let schiphol =
+    { Latitude = 52.3077
+      Longitude = 4.7674 }
 
 let getLocationResponse postcode = async {
     if not (Validation.isValidPostcode country postcode) then
@@ -22,7 +22,7 @@ let getLocationResponse postcode = async {
     // Task 1.3b
     //   Problem: We want Schiphol, not London.
     //   Approach: Right click on 'london', select Rename Symbol and rename to 'schiphol'
-    let distanceToAirport = getDistanceBetweenPositions location.LatLong london
+    let distanceToAirport = getDistanceBetweenPositions location.LatLong schiphol
 
     let response =
         { Postcode = postcode

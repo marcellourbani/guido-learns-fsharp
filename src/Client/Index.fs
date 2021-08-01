@@ -21,6 +21,7 @@ type ServerResponse =
       Location: LocationResponse
       // Task 3.1b When we fetch data from the server, also get the weather
       //           Add a 'Weather' field here of type 'WeatherResponse'
+      Weather: WeatherResponse
     }
 
 type ServerState =
@@ -78,7 +79,7 @@ type Msg =
     | GotDestination of DestinationIndex * ServerResponse
     | ErrorMsg of DestinationIndex * exn
     // Task 4.2b Add a new message RemoveDestination carrying a destination number
-
+    | RemoveDestination of DestinationIndex
 
 /// The init function is called to start the message pump with an initial view.
 let init () =
@@ -97,12 +98,14 @@ let getResponse destinationText = async {
      //   Use 'let! weather = ... GetWeather' here.
      //   The call is asynchronous, so you'll need to use 'let!' to
      //   await the result of the call.
+    let! weather = dojoApi.GetWeather destinationText
     let response =
         {
           Location = location
           // Task 3.1c
           //   Return the weather as part of the overall response
           //   Use 'Weather = weather' like 'Location = location'
+          Weather = weather
         }
     return response }
 
@@ -134,6 +137,9 @@ let update msg (model: Model) =
     //   Copy the code for GotDestination
     //   You can call model.RemoveDestination to generate a new model
     //   with the element removed
+    | RemoveDestination idx ->
+        let model = model.RemoveDestination idx
+        model, Cmd.none
 
     | TextChanged (idx, p) ->
         let destination = model.GetDestination idx
@@ -214,12 +220,14 @@ let mapDisplay (lr: LocationResponse) =
         //    Set the center of the map.
         //    Use the 'map.center' function and supply the lat/long value as input.
         //    These come from the LocationResponse.
+        map.center (lr.Location.LatLong.Latitude,lr.Location.LatLong.Longitude)
 
         // Task 2.3 Update the Zoom to 15.
-        map.zoom 12
+        map.zoom 15
         map.height 500
         map.markers [
             // Task 2.4 Create a marker for the map. Use the makeMarker function above.
+            makeMarker (lr.Location.LatLong.Latitude,lr.Location.LatLong.Longitude)
         ]
     ]
 
@@ -259,17 +267,17 @@ let locationDisplay (lr: LocationResponse) =
                     th "Region"
                     // Task 1.2
                     //   The region shows "TODO".
-                    //   Fill in the region, founf in the LocationResponse
+                    //   Fill in the region, found in the LocationResponse
                     //   Replace the string "TODO" with lr.Location and
                     //   then hit "." to look for the Region
-                    td "TODO"
+                    td lr.Location.Region
                 ]
                 tr [
                     // Task 1.3a
                     //   Heathrow is on plague island! Don't fly there!
                     //   Change Heathrow to Schiphol!
                     //   Then search for DistanceToAirport and find where it's calculated
-                    th "Distance to Heathrow"
+                    th "Distance to Schiphol"
                     td $"%.2f{lr.DistanceToAirport}km"
                 ]
             ]
@@ -282,6 +290,8 @@ let locationDisplay (lr: LocationResponse) =
 let adjective idx =
     match idx+1 with
     | 1 -> "First"
+    | 2 -> "Second"
+    | 3 -> "Third"
     | n -> string n + "th"
 
 let destinationEntrySection idx (destination: Destination) dispatch =
@@ -342,7 +352,7 @@ let destinationEntrySection idx (destination: Destination) dispatch =
                                  //   Try an incorrect postcode. The color of the
                                  //   help text is wrong!!
                                  //   Correct this to color.isDanger
-                                 color.isPrimary
+                                 color.isDanger
                                  prop.text error
                         ]
                     ]
@@ -363,29 +373,29 @@ let destinationEntrySection idx (destination: Destination) dispatch =
                 //   Add a trash icon by uncommenting the code below
                 //   Select, then Edit --> Toggle Line Comment
 
-                // control.div [
-                //     button.a [
-                //         prop.children [
-                //             icon [
-                //                 icon.isRight
-                //                 prop.children [
-                //                     i [ prop.className "fas fa-trash"]
-                //                 ]
-                //             ]
-                //         ]
-                //         if destination.Text = "" then
-                //             prop.disabled true
-                //
-                //         // Task 4.2a
-                //         //    Problem: the trash icon does the wrong thing!
-                //         //    Task:
-                //         //       Adjust to dispatch a new 'RemoveDestination' message
-                //         //       The message kind is not  defined, add it first then
-                //         //       come back here.
-                //         prop.onClick (fun _ -> GetDestination idx |> dispatch)
+                control.div [
+                    button.a [
+                        prop.children [
+                            icon [
+                                icon.isRight
+                                prop.children [
+                                    i [ prop.className "fas fa-trash"]
+                                ]
+                            ]
+                        ]
+                        if destination.Text = "" then
+                            prop.disabled true
+                
+                        // Task 4.2a
+                        //    Problem: the trash icon does the wrong thing!
+                        //    Task:
+                        //       Adjust to dispatch a new 'RemoveDestination' message
+                        //       The message kind is not  defined, add it first then
+                        //       come back here.
+                        prop.onClick (fun _ -> RemoveDestination idx |> dispatch)
 
-                //     ]
-                // ]
+                    ]
+                ]
 
             ]
         ]
@@ -419,12 +429,19 @@ let destinationInfoSection idx (model: Destination) =
                         //     Add a second column containing the weather information.
                         //     Create this using weatherDisplay, which takes a WeatherResponse
                         //     This can be found in the overall server response.
+                        column [
+                            column.isTwoFifths
+                            prop.children [
+                                weatherDisplay response.Weather
+                            ]
+                        ]
                     ]
                     // Task 2.1
                     //   Problem - we would like to add maps for each stop
                     //   Approach:
                     //     Add the map widget, created using "mapDisplay".
                     //     This takes a LocationResponse, found in the overall server response *)
+                    mapDisplay response.Location
                 ]
             ]
         ]

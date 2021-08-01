@@ -16,6 +16,7 @@ See the overview slide.
 //   - Select the code (keyboard or mouse)
 //   - Use "Alt-Enter" to execute in REPL
 
+1 + 1
 
 // Task 5.2
 //   Problem: we want to examine the REST service we would like to use
@@ -35,17 +36,19 @@ See the overview slide.
 
 // Task 5.4 - Point the JsonProvider to the web service
 //
+#r "nuget:FSharp.Data"
 
-// open FSharp.Data
-// type WikipediaIO = JsonProvider<"http://api.geonames.org/findNearbyWikipediaJSON?lat=52.3676&lng=4.9041&username=dsyme">
+open FSharp.Data
 
+type WikipediaIO =
+    JsonProvider<"https://secure.geonames.org/findNearbyWikipediaJSON?lat=52.3676&lng=4.9041&username=dsyme">
 
 // Task 5.5 - Use the JsonProvider to download the data, the code is below
 //
-// let info =
-//     $"http://api.geonames.org/findNearbyWikipediaJSON?lat=52.3676&lng=4.9041&username=dsyme"
-//     |> WikipediaIO.AsyncLoad
-//     |> Async.RunSynchronously
+let info =
+    $"https://secure.geonames.org/findNearbyWikipediaJSON?lat=52.3676&lng=4.9041&username=dsyme"
+    |> WikipediaIO.AsyncLoad
+    |> Async.RunSynchronously
 
 
 
@@ -53,7 +56,22 @@ See the overview slide.
 //
 // A starting snippet is below
 
-// [ for x in info.Geonames -> x.Title ]
+type WikiEntry =
+    { Title: string
+      Latitude: decimal
+      Longitude: decimal
+      Summary: string }
 
+let fromJson (x: WikipediaIO.Geoname) =
+    { Title = x.Title
+      Latitude = x.Lat
+      Longitude = x.Lng
+      Summary = x.Summary }
 
+let results = [ for x in info.Geonames -> fromJson x ]
 
+let printResult x =
+    printfn "Title: %s\nCoordinates: %f,%f\nSummary: %s\n\n" x.Title x.Latitude x.Longitude x.Summary
+
+// results = [ for x in info.Geonames -> x.Title ]
+[ for x in results -> printResult x ]
